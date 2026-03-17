@@ -11,21 +11,21 @@ $ docker image build --tag nautilus-web-portal .
 $ docker container run --interactive --tty --rm --name nwp-container nautilus-web-portal
 
 # (Within the container) Create the kubernetes configuration folder
-$ mkdir .kube
+$ mkdir ~/Downloads
 
 # (Outside the container) Open the following URL in the browser: https://nrp.ai/config
 
 # (Outside the container) Copy the config from the host into 
-$ tar --create --file=- --directory ~/Downloads/ config | docker exec --interactive --user ubuntu nwp-container sh -c "tar --extract --file=- --directory ~/.kube/ --no-same-owner --no-same-permissions"
+$ tar --create --file=- --directory ~/Downloads/ config | docker exec --interactive --user ubuntu nwp-container sh -c "tar --extract --file=- --directory ~/Downloads/ --no-same-owner --no-same-permissions"
 
 # This doesn't work because of annoying ownership issues:
 # $ docker container cp ~/Downloads/config nwp-container:/home/ubuntu/.kube/config
 
-# (Within the container) patch the configuration file so that you can log in on a separate host.
-$ uv run python update_kubeconfig.py
+# (Within the container) Add a user with the configuration file you just copied.
+$ uv run kubewrapper.py add_user <username> ~/Downloads/config
 
 # (Within the container) Finally, trigger the log in process with a dummy command.
-$ kubectl get pods
+$ uv run kubewrapper.py run_as <username> get nodes
 
 # If you ever need to open a second shell this might be useful:
 $ docker container exec --interactive --tty nwp-container bash
