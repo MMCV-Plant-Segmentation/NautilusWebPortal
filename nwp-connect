@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""
+nwp-connect
+
+Intended usage (run on your local machine):
+    ssh -L 8080:localhost:5000 calliope.rnet.missouri.edu nwp-connect
+
+The SSH daemon identifies you by your Unix UID via SO_PEERCRED.
+The printed URL is valid for 60 seconds — open it in your browser.
+"""
+
+import socket
+import sys
+
+SOCKET_PATH = "/var/nwp/auth.sock"
+
+try:
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.connect(SOCKET_PATH)
+        url = s.recv(1024).decode().strip()
+        print(url)
+
+    # Keep the SSH session (and its port forwarding) alive until the user is done.
+    print("Press Enter to close the tunnel.", file=sys.stderr)
+    input()
+except FileNotFoundError:
+    print("nwp-connect: socket not found — is the NWP portal running?", file=sys.stderr)
+    sys.exit(1)
+except ConnectionRefusedError:
+    print("nwp-connect: connection refused — is the NWP portal running?", file=sys.stderr)
+    sys.exit(1)

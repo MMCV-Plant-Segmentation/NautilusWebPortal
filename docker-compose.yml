@@ -1,0 +1,9 @@
+services:
+  portal:
+    build: .
+    image: nautilus-web-portal
+    container_name: nwp-container
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - /var/nwp:/home/ubuntu/nwp

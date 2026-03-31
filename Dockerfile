@@ -31,4 +31,9 @@ RUN rm -r kubelogin_install_dir
 # Install uv so that we can use python
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY kubewrapper.py /home/ubuntu/
+COPY pyproject.toml /home/ubuntu/
+RUN uv sync
+
+COPY kubewrapper.py auth.py app.py /home/ubuntu/
+
+CMD ["uv", "run", "python", "app.py"]
