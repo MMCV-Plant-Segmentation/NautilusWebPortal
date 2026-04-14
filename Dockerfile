@@ -31,4 +31,17 @@ RUN rm -r kubelogin_install_dir
 # Install uv so that we can use python
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY kubewrapper.py /home/ubuntu/
+# Install Python dependencies (before copying app code for layer caching).
+# --no-install-project skips building the local package (source not present yet).
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+
+# Create the folder where the database will live (here so that ubuntu owns the file)
+RUN mkdir -p ~/nwp
+
+# Copy application code, then install the project itself (no new downloads needed)
+COPY nautilus_web_portal/ ./nautilus_web_portal/
+COPY app.py kubewrapper.py ./
+RUN uv sync --frozen
+
+CMD ["uv", "run", "python", "app.py"]

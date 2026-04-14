@@ -1,32 +1,107 @@
+# Nautilus Web Portal
+
+A web portal for submitting COLMAP jobs to the NRP-Nautilus Kubernetes cluster.
+
+---
+
+## Setup
+
+### 1. Create `.env`
+
+Copy the example below to `.env` in the project root and fill in the values.
+
 ```sh
-# Build the docker image
-$ docker image build --tag nautilus-web-portal .
-# `docker image list` should now display `nautilus-web-portal:latest`
+SECRET_KEY=<random string>   # used to sign Flask session cookies (generated in the next step)
+ADMIN_PASSWORD=<password>    # sets (or updates) the admin account password on startup
+PORT=5000
+```
 
-# Instantiate a temporary container using that image and open an interactive shell within it
-## --interactive --tty means that the shell you get put in will accept input, including terminal escape sequences
-## --rm means the container is temporary and will be deleted when you kill it
-## --name specifies the name to give the container so you can reference it
-## (Alternatively you can fetch the ID with: docker container ls --quiet --filter 'ancestor=nautilus-web-portal')
-$ docker container run --interactive --tty --rm --name nwp-container nautilus-web-portal
+Generate a secure random `SECRET_KEY`:
 
-# (Within the container) Create the kubernetes configuration folder
-$ mkdir ~/Downloads
+```sh
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
 
-# (Outside the container) Open the following URL in the browser: https://nrp.ai/config
+`.env` is never committed to git. Keep it safe.
 
-# (Outside the container) Copy the config from the host into 
-$ tar --create --file=- --directory ~/Downloads/ config | docker exec --interactive --user ubuntu nwp-container sh -c "tar --extract --file=- --directory ~/Downloads/ --no-same-owner --no-same-permissions"
+### 2. Build and run
 
-# This doesn't work because of annoying ownership issues:
-# $ docker container cp ~/Downloads/config nwp-container:/home/ubuntu/.kube/config
 
-# (Within the container) Add a user with the configuration file you just copied.
-$ uv run kubewrapper.py add_user <username> ~/Downloads/config
+On the server, run:
 
-# (Within the container) Finally, trigger the log in process with a dummy command.
-$ uv run kubewrapper.py run_as <username> get nodes
+```sh
+docker compose up --build
+```
 
-# If you ever need to open a second shell this might be useful:
-$ docker container exec --interactive --tty nwp-container bash
+The app will listen on `PORT` inside and outside of the container. The database is stored in the `nwp-data` Docker volume (which persists across restarts).
+
+### 3. Access via SSH tunnel
+
+The app is not exposed to the network directly. Unless you are using the app from the server itself, you will need to forward it to your local machine:
+
+```sh
+ssh -L <local-port>:localhost:<PORT> <user>@<server>.rnet.missouri.edu
+```
+
+`PORT` is whatever is set in `.env` on the server. `local-port` can be anything free on
+your machine — it does not need to match. Then open `http://localhost:<local-port>` in
+your browser.
+
+### 4. First login
+
+Log in with:
+
+- **Username:** `admin`
+- **Password:** whatever you set for `ADMIN_PASSWORD` in `.env`
+
+From the admin panel you can create additional users. Each new user gets an invite
+code — copy it from the admin panel and send it to them. They can paste it into the
+"Have an invite code?" box on the login page, or use the full invite link if they happen
+to be forwarding the same local port as you.
+
+---
+
+## Common operations
+
+### Change the admin password
+
+Update `ADMIN_PASSWORD` in `.env` and restart:
+
+```sh
+docker compose up --build
+```
+
+The new password takes effect immediately on startup.
+
+### Reset the database (wipe all data)
+
+```sh
+docker compose down -v
+docker compose up --build
+```
+
+`-v` removes the `nwp-data` volume. A fresh database is created on next startup.
+
+---
+
+## Development
+
+### Install dependencies (including test tools)
+
+```sh
+uv sync --group dev
+```
+
+### Run tests
+
+```sh
+uv run --group dev pytest
+```
+
+Tests use an isolated temporary SQLite file per test — no running container needed.
+
+### Run the app locally (without Docker)
+
+```sh
+SECRET_KEY=dev ADMIN_PASSWORD=devpass PORT=5000 uv run python app.py
 ```

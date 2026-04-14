@@ -1,0 +1,14 @@
+services:
+  nwp:
+    build: .
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      # nwp-data is mounted at /home/ubuntu/nwp inside the container (~/ = /home/ubuntu).
+      # The SQLite database lives at /home/ubuntu/nwp/db.sqlite3 and persists across rebuilds.
+      # To wipe the database: docker compose down -v && docker compose up --build
+      - nwp-data:/home/ubuntu/nwp
+    env_file: .env
+
+volumes:
+  nwp-data:

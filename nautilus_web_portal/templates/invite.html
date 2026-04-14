@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Set password — NautilusWebPortal{% endblock %}
+
+{% block content %}
+<div style="max-width:400px; margin:4rem auto; background:#fff; padding:2rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+
+  <div id="invalid-section" style="display:none;">
+    <h2>Link invalid or expired</h2>
+    <p>This invite link has expired or is no longer valid.</p>
+    <p>Please ask the admin to generate a new one.</p>
+  </div>
+
+  <div id="form-section" style="display:none;">
+    <h2 id="greeting" style="margin-top:0;"></h2>
+    <form id="invite-form">
+      <div style="margin-bottom:0.8rem;">
+        <label for="password">Password</label><br>
+        <input type="password" id="password" name="password" required minlength="8" style="width:100%;">
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label for="confirm">Confirm password</label><br>
+        <input type="password" id="confirm" name="confirm" required minlength="8" style="width:100%;">
+      </div>
+      <div id="error" style="color:#c00; margin-bottom:0.8rem; min-height:1.2em;"></div>
+      <button type="submit" style="width:100%;">Set password</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const token = {{ token | tojson }};
+
+  async function init() {
+    const res = await fetch(`/api/invite/${token}`);
+    if (!res.ok) {
+      document.getElementById('invalid-section').style.display = 'block';
+      return;
+    }
+    const data = await res.json();
+    document.getElementById('greeting').textContent = `Hi, ${data.username}! Set your password below.`;
+    document.getElementById('form-section').style.display = 'block';
+  }
+
+  document.getElementById('invite-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    document.getElementById('error').textContent = '';
+    const res = await fetch(`/api/invite/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, confirm }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('error').textContent = data.error;
+    } else {
+      window.location.href = '/login';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}
