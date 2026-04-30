@@ -78,7 +78,15 @@ Opaque tokens stored in the `auth_tokens` DB table, delivered as an `HttpOnly + 
 
 ### Docker build
 
-`frontend/Dockerfile` (Node 22 alpine) and the main `Dockerfile` (Ubuntu) are separate. `compose.yaml` wires them together via `additional_contexts: { frontend: ./frontend }` and `target: app`. The Dockerfile has two stages: `FROM frontend AS frontend-build` first (BuildKit requires the stage be defined before it's referenced), then `FROM ubuntu:26.04 AS app`. `compose.yaml` specifies `target: app`. BuildKit caches each stage independently by content, so the Python dependency layers survive frontend-only changes. Changing Python files does not invalidate the Node cache and vice versa.
+Three separate Dockerfiles, combined by `docker-bake.hcl`:
+
+| File | Base | Produces |
+|------|------|----------|
+| `frontend/Dockerfile` | Node 22 alpine | built React app (`/app/dist`) |
+| `tools/Dockerfile` | Ubuntu 26.04 | `kubectl` + `kubectl-oidc_login` binaries, pinned via `ARG` |
+| `Dockerfile` | Ubuntu 26.04 | final runtime image |
+
+The main `Dockerfile` copies from both via `COPY --from=frontend-build` and `COPY --from=tools-build`. `compose.yaml` references the pre-built image by name (`image: nautiluswebportal-nwp:latest`). BuildKit caches each target independently by content — changing Python files does not invalidate the Node or tools cache, and vice versa. To pin-bump kubectl: change `KUBECTL_VERSION` in `tools/Dockerfile`.
 
 ### Testing
 
