@@ -26,12 +26,13 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 
 ### 2. Build and run
 
-
 On the server, run:
 
 ```sh
-docker compose up --build
+docker buildx bake && docker compose up
 ```
+
+`docker buildx bake` builds the frontend (Node) and app (Ubuntu) images separately and combines them. `docker compose up` starts the container using the image that was just built.
 
 The app will listen on `PORT` inside and outside of the container. The database is stored in the `nwp-data` Docker volume (which persists across restarts).
 
@@ -68,7 +69,7 @@ to be forwarding the same local port as you.
 Update `ADMIN_PASSWORD` in `.env` and restart:
 
 ```sh
-docker compose up --build
+docker buildx bake && docker compose up
 ```
 
 The new password takes effect immediately on startup.
@@ -77,7 +78,7 @@ The new password takes effect immediately on startup.
 
 ```sh
 docker compose down -v
-docker compose up --build
+docker buildx bake && docker compose up
 ```
 
 `-v` removes the `nwp-data` volume. A fresh database is created on next startup.
@@ -92,13 +93,27 @@ docker compose up --build
 uv sync --group dev
 ```
 
+### Activate the pre-commit hook
+
+The repo ships a hook that runs the test suite with coverage before every commit. Activate it once after cloning:
+
+```sh
+git config core.hooksPath .githooks
+```
+
 ### Run tests
 
 ```sh
-uv run --group dev pytest
+uv run pytest
 ```
 
 Tests use an isolated temporary SQLite file per test — no running container needed.
+
+Run with coverage (what the pre-commit hook does):
+
+```sh
+uv run pytest --cov
+```
 
 ### Run the app locally (without Docker)
 

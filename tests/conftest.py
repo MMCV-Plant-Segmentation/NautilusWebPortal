@@ -12,6 +12,7 @@ def app(tmp_path):
         "SECRET_KEY": "test-secret-key",
         "DATABASE": db_path,
         "ADMIN_PASSWORD": "adminpass123",
+        "HASH_METHOD": "pbkdf2:sha256:1",
     })
     with application.app_context():
         init_db()

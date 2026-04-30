@@ -15,7 +15,7 @@ def _create_alice_with_token(admin_client):
 
 def _in_the_future(offset=EIGHT_DAYS):
     """Return a context manager that freezes time.time() in api.py to now + offset."""
-    return patch("nautilus_web_portal.api.time.time", return_value=time.time() + offset)
+    return patch("nautilus_web_portal.invites.time.time", return_value=time.time() + offset)
 
 
 # ── GET /api/invite/<token> ───────────────────────────────────────────────────
@@ -48,10 +48,17 @@ def test_redeem_invite_success(client, admin_client):
     assert r.get_json() == {"ok": True}
 
 
-def test_redeem_invite_clears_session(app, admin_client):
-    """After redemption the session must be wiped — the user is not logged in."""
+def test_get_invite_clears_auth(admin_client):
+    """Loading a valid invite link clears the caller's auth token."""
     _, token = _create_alice_with_token(admin_client)
-    # Redeem while logged in as admin — session should be cleared afterwards
+    admin_client.get(f"/api/invite/{token}")
+    r = admin_client.get("/api/users")
+    assert r.status_code == 401
+
+
+def test_redeem_invite_clears_auth(app, admin_client):
+    """Redeeming an invite clears the caller's auth token."""
+    _, token = _create_alice_with_token(admin_client)
     admin_client.post(f"/api/invite/{token}", json={"password": "newpass1", "confirm": "newpass1"})
     r = admin_client.get("/api/users")
     assert r.status_code == 401

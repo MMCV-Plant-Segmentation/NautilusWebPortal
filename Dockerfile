@@ -44,4 +44,6 @@ COPY nautilus_web_portal/ ./nautilus_web_portal/
 COPY app.py kubewrapper.py ./
 RUN uv sync --frozen
 
+COPY --from=frontend-build /app/dist ./frontend/dist
+
 CMD ["uv", "run", "python", "app.py"]

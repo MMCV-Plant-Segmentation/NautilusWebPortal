@@ -4,15 +4,21 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "flask",
+    "flask-sock",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
+    "pytest-cov>=7.1.0",
+    "python-dotenv",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["nautilus_web_portal"]
 
 [build-system]
 requires = ["hatchling"]
